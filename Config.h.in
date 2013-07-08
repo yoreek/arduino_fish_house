@@ -1,0 +1,4 @@
+#define fish_house_MAJOR_VERSION "@fish_house_MAJOR_VERSION@"
+#define fish_house_MINOR_VERSION "@fish_house_MINOR_VERSION@"
+#define fish_house_PATCH_VERSION "@fish_house_PATCH_VERSION@"
+#define fish_house_VERSION       "@fish_house_VERSION@"
