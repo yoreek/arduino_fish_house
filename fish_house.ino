@@ -2,12 +2,17 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
-#include <ICMPPing.h>
 #include <WebServer.h>
 #include <Syslog.h>
 #include "Config.h"
 
 /*#define DEBUG*/
+/*#define ICMP_ENABLED*/
+
+#if ICMP_ENABLED
+#include <ICMPPing.h>
+#endif
+
 #define USE_SYSTEM_INFO
 
 #define MAINTAIN_INTERVAL         10
@@ -20,7 +25,7 @@
 #define FEED_ON_START             8  // hour
 #define FEED_ON_FINISH            9  // hour
 #define FEED_DURATION             4
-#define FEED_SWITCH_PIN           4
+#define FEED_SWITCH_PIN           5
 
 #define WEBSERVER_PREFIX          ""
 #define WEBSERVER_PORT            80
@@ -34,7 +39,13 @@
 #define NTP_LOCAL_PORT            8887
 #define NTP_TIME_ZONE             3
 
+#if ICMP_ENABLED
 #define PING_SERVER               8, 8, 8, 8
+#endif
+
+/* Ethernal shield uses 11-13 pins, 4 and 10 pins must be HIGH */
+#define ETHERNET_SHIELD_SDCARD_PIN 4
+#define ETHERNET_SHIELD_ENABLE_PIN 10
 
 byte    loggerHost[] =            { 67, 214, 212, 103 };
 
@@ -62,9 +73,11 @@ unsigned long  timeLastUpdate    = 0;
 char           ntpBuffer[32];
 
 /* Ping */
+#if ICMP_ENABLED
 IPAddress      pingAddr(PING_SERVER);
-SOCKET         pingSocket = 3;
+SOCKET         pingSocket        = 3;
 ICMPPing       ping(pingSocket, (uint16_t) random(0, 255));
+#endif
 
 /* Relay */
 #define RELAY_ON                  0
@@ -459,6 +472,7 @@ void checkConnection()
         }
     }
 
+#if ICMP_ENABLED
     debug_println("Send echo request...");
 
     ICMPEchoReply echoReply = ping(pingAddr, 4);
@@ -493,6 +507,9 @@ void checkConnection()
 #endif
 
     isConnected = false;
+#else
+    isConnected = true;
+#endif
 }
 
 void digitalClockDisplay(){
@@ -659,8 +676,8 @@ void initLightSwitch()
 
 void initFeedSwitch()
 {
-    digitalWrite(LIGHT_SWITCH_PIN, RELAY_OFF);
-    pinMode(LIGHT_SWITCH_PIN, OUTPUT);
+    digitalWrite(FEED_SWITCH_PIN, RELAY_OFF);
+    pinMode(FEED_SWITCH_PIN, OUTPUT);
 }
 
 void initLogger()
@@ -673,12 +690,12 @@ void initLogger()
 
 void initEthernetShield() {
     // Disable SDcard peripheral
-    pinMode(4, OUTPUT);
-    digitalWrite(4, HIGH);
+    pinMode(ETHERNET_SHIELD_SDCARD_PIN, OUTPUT);
+    digitalWrite(ETHERNET_SHIELD_SDCARD_PIN, HIGH);
 
     // Enable W5100 peripheral
-    pinMode(10, OUTPUT);
-    digitalWrite(10, LOW);
+    pinMode(ETHERNET_SHIELD_ENABLE_PIN, OUTPUT);
+    digitalWrite(ETHERNET_SHIELD_ENABLE_PIN, HIGH);
 }
 
 void setup()
@@ -690,9 +707,9 @@ void setup()
 
     debug_println("Initializing...");
 
-    initEthernetShield();
     initLightSwitch();
     initFeedSwitch();
+    initEthernetShield();
 }
 
 void loop ()
